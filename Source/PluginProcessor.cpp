@@ -33,21 +33,21 @@ juce::AudioProcessorValueTreeState::ParameterLayout CC2290Processor::createLayou
     juce::AudioProcessorValueTreeState::ParameterLayout l;
 
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::delay, 1 }, "Delay",
-                                 juce::NormalisableRange<float> (5.0f, 100.0f, 0.1f, 0.5f), 24.0f,
+                                 juce::NormalisableRange<float> (5.0f, 100.0f, 0.1f, 0.5f), 7.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("ms")));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::depth, 1 }, "Mod Depth",
-                                 juce::NormalisableRange<float> (0.0f, 25.0f, 0.1f), 6.0f,
+                                 juce::NormalisableRange<float> (0.0f, 25.0f, 0.1f), 4.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("cents")));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::speed, 1 }, "Mod Speed",
-                                 juce::NormalisableRange<float> (0.05f, 10.0f, 0.01f, 0.35f), 0.4f,
+                                 juce::NormalisableRange<float> (0.05f, 10.0f, 0.01f, 0.35f), 0.35f,
                                  juce::AudioParameterFloatAttributes().withLabel ("Hz")));
     l.add (std::make_unique<Pc> (juce::ParameterID { IDs::wave, 1 }, "Waveform",
                                  juce::StringArray { "Sine", "Random" }, 1));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::width, 1 }, "Width",
-                                 juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 80.0f,
+                                 juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 100.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("%")));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::duck, 1 }, "Ducking",
-                                 juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 30.0f,
+                                 juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 0.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("%")));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::dynspeed, 1 }, "Dyn Speed",
                                  juce::NormalisableRange<float> (50.0f, 1000.0f, 1.0f, 0.5f), 200.0f,
@@ -63,7 +63,7 @@ juce::AudioProcessorValueTreeState::ParameterLayout CC2290Processor::createLayou
                                  juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 100.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("%")));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::wet, 1 }, "Double",
-                                 juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 80.0f,
+                                 juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 100.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("%")));
     return l;
 }

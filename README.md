@@ -30,6 +30,15 @@ Extras: a golden-ratio (×1.618) second voice for stereo width, optional
 "vintage tone" low-pass, and an LED rack-style UI with draggable 7-segment
 displays and live input/output meters.
 
+## Default settings — the Petrucci split
+
+The defaults follow John Petrucci's documented live use of the 2290: he runs a
+**7 ms delay between left and right, 100% wet, 0% feedback** on practically every
+sound, as a stereo split with light chorusing. So the plugin opens with
+Delay 7 ms, Double 100%, Width 100%, Feedback 0%, no ducking, and subtle random
+modulation (4 cents @ 0.35 Hz) for the chorused movement. Classic 24 ms
+"vocal doubling" is one knob away — raise Delay to 24 ms.
+
 ## Parameters
 
 | Section | Controls |
