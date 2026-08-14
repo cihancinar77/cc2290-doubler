@@ -78,9 +78,10 @@ private:
                                dryCell, wetCell, widthCell;
 
     juce::TextButton sineButton { "SINE" }, randButton { "RANDOM" },
-                     wideButton { "WIDE" }, fbCutButton { "FB CUT OFF" };
+                     wideButton { "WIDE" }, voice2Button { "VOICE 2" },
+                     fbCutButton { "FB CUT OFF" };
     std::unique_ptr<juce::ParameterAttachment> waveAttach, fbCutAttach;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> wideAttach;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> wideAttach, voice2Attach;
     int fbCutIdx = 3;
 
     LevelMeter inMeter, outMeter;

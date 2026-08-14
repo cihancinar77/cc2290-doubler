@@ -14,6 +14,7 @@ namespace IDs
     static const juce::String feedback { "feedback" };  // %
     static const juce::String fbhicut  { "fbhicut" };   // repeat-only hi-cut choice
     static const juce::String wide     { "wide" };      // bool, wet phase-reverse R
+    static const juce::String voice2   { "voice2" };    // bool, golden-ratio 2nd tap
     static const juce::String dry      { "dry" };       // %
     static const juce::String wet      { "wet" };       // %
 }
@@ -66,6 +67,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout CC2290Processor::createLayou
                                  juce::StringArray { "2 kHz", "4 kHz", "8 kHz", "Off" }, 3));
     // the 2290's signature wide mode: wet phase-reversed between L and R
     l.add (std::make_unique<Pb> (juce::ParameterID { IDs::wide, 1 }, "Wide", false));
+    // optional golden-ratio second tap (a creative extra — the 2290 is
+    // single-voice; keeping it off avoids a second comb source by default)
+    l.add (std::make_unique<Pb> (juce::ParameterID { IDs::voice2, 1 }, "Voice 2", false));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::dry, 1 }, "Dry",
                                  juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 100.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("%")));
@@ -98,10 +102,12 @@ void CC2290Processor::prepareToPlay (double sampleRate, int)
     randValA = randValB = randTargetA = randTargetB = 0.0f;
 
     const double smoothSec = 0.05;
-    for (auto* s : { &smDelayMs, &smWet, &smDry, &smWidth, &smFeedback, &smWideSign })
+    for (auto* s : { &smDelayMs, &smWet, &smDry, &smWidth, &smFeedback, &smWideSign, &smVoice2 })
         s->reset (sampleRate, smoothSec);
     smWideSign.setCurrentAndTargetValue (
         apvts.getRawParameterValue ("wide")->load() > 0.5f ? -1.0f : 1.0f);
+    smVoice2.setCurrentAndTargetValue (
+        apvts.getRawParameterValue ("voice2")->load() > 0.5f ? 1.0f : 0.0f);
 
     juce::dsp::ProcessSpec spec { sampleRate, 512, 1 };
     fbFiltL.prepare (spec);
@@ -147,6 +153,7 @@ void CC2290Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     const float pFb      = apvts.getRawParameterValue (IDs::feedback)->load() * 0.01f;
     const int   pFbCut   = (int) apvts.getRawParameterValue (IDs::fbhicut)->load();
     const bool  pWide    = apvts.getRawParameterValue (IDs::wide)->load() > 0.5f;
+    const bool  pVoice2  = apvts.getRawParameterValue (IDs::voice2)->load() > 0.5f;
     const float pDry     = apvts.getRawParameterValue (IDs::dry)->load() * 0.01f;
     const float pWet     = apvts.getRawParameterValue (IDs::wet)->load() * 0.01f;
 
@@ -156,6 +163,7 @@ void CC2290Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     smWidth.setTargetValue (pWidth);
     smFeedback.setTargetValue (pFb);
     smWideSign.setTargetValue (pWide ? -1.0f : 1.0f);
+    smVoice2.setTargetValue (pVoice2 ? 1.0f : 0.0f);
 
     if (pFbCut != fbCutIdx)
     {
@@ -261,26 +269,33 @@ void CC2290Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
 
         const float wet   = smWet.getNextValue() * duckGain;
         const float dry   = smDry.getNextValue();
-        const float width = smWidth.getNextValue();
+        float width       = smWidth.getNextValue();
+        const float v2    = smVoice2.getNextValue();
+        if (outR == nullptr)
+            width = 0.0f;   // the dry/wet split needs two channels
 
-        // width 0: single centred voice; width 1: A hard left, B hard right
-        const float vA_L = 1.0f;
-        const float vA_R = 1.0f - width;          // A moves left as width grows
-        const float vB_L = (1.0f - width);        // B moves right as width grows
-        const float vB_R = 1.0f;
-        const float bGain = width;                // voice B fades in with width
+        // width is the 2290-style split: the dry walks left while the delayed
+        // voice walks right, so at full width the dry and the double never sum
+        // on the same channel — summing them is what combs like a flanger at
+        // short delay times. voice B (optional) takes the opposite side.
+        const float dryPanL = 1.0f;
+        const float dryPanR = 1.0f - width;
+        const float vA_L = 1.0f - width;
+        const float vA_R = 1.0f;
+        const float vB_L = 1.0f;
+        const float vB_R = 1.0f - width;
 
-        const float wl = wet * (tapAL * vA_L + tapBL * vB_L * bGain) * 0.9f;
-        const float wr = wet * (tapAR * vA_R + tapBR * vB_R * bGain) * 0.9f;
+        const float wl = wet * (tapAL * vA_L + tapBL * vB_L * v2 * 0.8f) * 0.9f;
+        const float wr = wet * (tapAR * vA_R + tapBR * vB_R * v2 * 0.8f) * 0.9f;
 
         // wide mode: wet phase-reversed on the right, per the 2290's stereo
         // trick ("pleasantly broad but not monocompatible"); smoothed so
         // toggling doesn't click
         const float wideSign = smWideSign.getNextValue();
 
-        outL[i] = dryL * dry + wl;
+        outL[i] = dryL * dry * dryPanL + wl;
         if (outR != nullptr)
-            outR[i] = dryR * dry + wr * wideSign;
+            outR[i] = dryR * dry * dryPanR + wr * wideSign;
 
         inPk  = juce::jmax (inPk, std::abs (mono));
         outPk = juce::jmax (outPk, std::abs (outL[i]),

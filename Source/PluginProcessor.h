@@ -61,8 +61,9 @@ private:
     // envelope follower
     float env = 0.0f;
 
-    // smoothed params (smWideSign ramps between +1/-1 for the wide switch)
-    juce::SmoothedValue<float> smDelayMs, smWet, smDry, smWidth, smFeedback, smWideSign;
+    // smoothed params (smWideSign ramps between +1/-1 for the wide switch,
+    // smVoice2 between 0/1 for the second-voice switch)
+    juce::SmoothedValue<float> smDelayMs, smWet, smDry, smWidth, smFeedback, smWideSign, smVoice2;
     float fbL = 0.0f, fbR = 0.0f;
 
     // feedback-path hi-cut (repeats only, like the hardware's 2/4/8 kHz)

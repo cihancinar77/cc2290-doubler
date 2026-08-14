@@ -26,13 +26,20 @@ The famous "2290 doubling" sound is not a special mode — it is a recipe:
    dry signal while you play (ducking), and modulation can deepen the harder you
    play (dynamic modulation).
 
-Extras: a golden-ratio (×1.618) second voice for stereo width (a creative
-addition — the real 2290 is single-voice; multi-voice rigs chained several
-units), a **Wide** mode that phase-reverses the wet signal between left and
-right (the hardware's signature "pleasantly broad but not monocompatible"
-stereo trick), a feedback-path hi-cut (2/4/8 kHz, repeats only, first echo
-stays full-band — like the hardware's feedback filters), and an LED rack-style
-UI with draggable 7-segment displays and live input/output meters.
+**Width is a dry/delay split**, like the classic 2290 rigs: as width increases
+the dry signal walks left and the delayed voice walks right, so at 100% the
+dry and the double never sum on the same channel. (Summing them is what combs
+like a flanger at short delay times — the manual's own chart calls 0–10 ms
+mixed dry+wet the flanger zone.) At width 0% both sit centred for classic
+mono ADT stacking.
+
+Extras: an optional **Voice 2** golden-ratio (×1.618) second tap on the
+opposite side (a creative addition — the real 2290 is single-voice; multi-voice
+rigs chained several units), a **Wide** mode that phase-reverses the wet signal
+between left and right (the hardware's signature "pleasantly broad but not
+monocompatible" stereo trick), a feedback-path hi-cut (2/4/8 kHz, repeats only,
+first echo stays full-band — like the hardware's feedback filters), and an LED
+rack-style UI with draggable 7-segment displays and live input/output meters.
 
 True stereo: each input channel gets its own delay line, so stereo sources
 keep their image in the doubled signal; ducking attenuates both the delay
@@ -54,8 +61,8 @@ modulation (4 cents @ 0.35 Hz) for the chorused movement. Classic 24 ms
 | MODULATION | Speed (Hz), Depth (cents) |
 | DELAY | Delay (ms), Feedback (%) |
 | DYNAMICS | Ducking (%), Dyn Speed (ms), Dyn Mod (%) |
-| MIX | Dry (%), Double (%), Width (%) |
-| MODE | Sine / Random waveform, Wide (wet phase-reverse), FB hi-cut (2/4/8 kHz/off) |
+| MIX | Dry (%), Double (%), Width (% dry/delay split) |
+| MODE | Sine / Random waveform, Wide (wet phase-reverse), Voice 2 (golden-ratio tap), FB hi-cut (2/4/8 kHz/off) |
 
 ## Building
 

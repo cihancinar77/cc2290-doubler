@@ -269,6 +269,11 @@ CC2290Editor::CC2290Editor (CC2290Processor& p)
     wideAttach = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
         proc.apvts, "wide", wideButton);
 
+    voice2Button.setClickingTogglesState (true);
+    addAndMakeVisible (voice2Button);
+    voice2Attach = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
+        proc.apvts, "voice2", voice2Button);
+
     // feedback hi-cut cycles 2k -> 4k -> 8k -> off; LED lit while engaged
     addAndMakeVisible (fbCutButton);
     auto* fbCutParam = proc.apvts.getParameter ("fbhicut");
@@ -366,13 +371,17 @@ void CC2290Editor::resized()
 
         auto content = modeBox.reduced (14);
         content.removeFromTop (14);
-        const int bh = 22;
-        sineButton.setBounds  (content.removeFromTop (bh));
-        content.removeFromTop (5);
-        randButton.setBounds  (content.removeFromTop (bh));
-        content.removeFromTop (5);
-        wideButton.setBounds  (content.removeFromTop (bh));
-        content.removeFromTop (5);
+        const int bh = 26;
+        auto pair = [] (juce::Rectangle<int> row, juce::TextButton& a, juce::TextButton& b)
+        {
+            a.setBounds (row.removeFromLeft (row.getWidth() / 2 - 3));
+            row.removeFromLeft (6);
+            b.setBounds (row);
+        };
+        pair (content.removeFromTop (bh), sineButton, randButton);
+        content.removeFromTop (8);
+        pair (content.removeFromTop (bh), wideButton, voice2Button);
+        content.removeFromTop (8);
         fbCutButton.setBounds (content.removeFromTop (bh));
 
         specDisplay = specBox.reduced (16).withTrimmedTop (18);
