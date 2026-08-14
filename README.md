@@ -59,7 +59,9 @@ feedback path, as on the original Dynamic section.
 
 ## Factory presets
 
-Vocal ADT (the default patch), Tight Thickener, Micropitch 231 (an homage to
+Real 2290 (the default patch — matched by deconvolving a recording of a real
+TC2290: single 7.0 ms tap on both channels, right side phase-reversed, wet
+1.37x above the dry, static delay), Vocal ADT, Tight Thickener, Micropitch 231 (an homage to
 the Eventide H3000 #231 patch), Big Rhythm Guitars, 2290 Dynamic Double,
 Petrucci Split, Slapback 90, Wet Bus 100%, Ultra Wide (Check Mono), and
 Axe-FX 2290 Wide (the Fractal "2290 w/ Modulation" tone: 15 ms, one sine LFO

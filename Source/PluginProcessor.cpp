@@ -35,21 +35,22 @@ juce::AudioProcessorValueTreeState::ParameterLayout CC2290Processor::createLayou
     juce::AudioProcessorValueTreeState::ParameterLayout l;
 
     // hardware range starts at 0.1 ms; 1 ms keeps the taps comfortably apart.
-    // 24 ms default: the ADT band (20-80 ms) where dry+wet stacking reads as
-    // doubling, not comb filtering — short splits belong to the kill-dry patch
+    // defaults match a measured real TC2290 recording: 7 ms wide-mode double,
+    // wet 1.37x above dry, essentially static delay (deconvolution shows the
+    // 7.04 ms tap at full amplitude -> wander under ~2 samples over 40 s)
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::delay, 1 }, "Delay",
-                                 juce::NormalisableRange<float> (1.0f, 100.0f, 0.1f, 0.5f), 24.0f,
+                                 juce::NormalisableRange<float> (1.0f, 100.0f, 0.1f, 0.5f), 7.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("ms")));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::depth, 1 }, "Mod Depth",
-                                 juce::NormalisableRange<float> (0.0f, 25.0f, 0.1f), 6.0f,
+                                 juce::NormalisableRange<float> (0.0f, 25.0f, 0.1f), 0.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("cents")));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::speed, 1 }, "Mod Speed",
-                                 juce::NormalisableRange<float> (0.05f, 10.0f, 0.01f, 0.35f), 0.4f,
+                                 juce::NormalisableRange<float> (0.05f, 10.0f, 0.01f, 0.35f), 0.35f,
                                  juce::AudioParameterFloatAttributes().withLabel ("Hz")));
     l.add (std::make_unique<Pc> (juce::ParameterID { IDs::wave, 1 }, "Waveform",
-                                 juce::StringArray { "Sine", "Random" }, 1));
+                                 juce::StringArray { "Sine", "Random" }, 0));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::width, 1 }, "Width",
-                                 juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 75.0f,
+                                 juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 0.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("%")));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::duck, 1 }, "Ducking",
                                  juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 0.0f,
@@ -70,15 +71,15 @@ juce::AudioProcessorValueTreeState::ParameterLayout CC2290Processor::createLayou
     l.add (std::make_unique<Pc> (juce::ParameterID { IDs::fbhicut, 2 }, "FB Hi-Cut",
                                  juce::StringArray { "2 kHz", "4 kHz", "8 kHz", "Off" }, 3));
     // the 2290's signature wide mode: wet phase-reversed between L and R
-    l.add (std::make_unique<Pb> (juce::ParameterID { IDs::wide, 2 }, "Wide", false));
+    l.add (std::make_unique<Pb> (juce::ParameterID { IDs::wide, 2 }, "Wide", true));
     // golden-ratio second tap: the left half of the stereo spread (a creative
     // extra — the real 2290 is single-voice)
     l.add (std::make_unique<Pb> (juce::ParameterID { IDs::voice2, 2 }, "Voice 2", true));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::dry, 1 }, "Dry",
-                                 juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 100.0f,
+                                 juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 65.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("%")));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::wet, 1 }, "Double",
-                                 juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 75.0f,
+                                 juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 100.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("%")));
     return l;
 }
@@ -365,6 +366,10 @@ namespace
     // hicut: 0=2k 1=4k 2=8k 3=off ; wave: 0=sine 1=random
     static const Preset kPresets[] =
     {
+        // measured from a real TC2290 recording (deconvolution of user's
+        // reference): single 7.0 ms tap on both channels, right phase-
+        // reversed, wet 1.37x above dry, sine wander ~1.5 cents @ 0.35 Hz
+        { "Real 2290",               7.0f, 0.0f, 0.35f, 0,  0.0f,  0.0f, 400.0f,  0.0f,  0.0f, 3, true,  true,   65.0f, 100.0f },
         { "Vocal ADT",              24.0f, 6.0f, 0.4f,  1, 75.0f,  0.0f, 400.0f,  0.0f,  0.0f, 3, false, true,  100.0f,  75.0f },
         { "Tight Thickener",        12.0f, 4.0f, 0.8f,  1, 60.0f,  0.0f, 400.0f,  0.0f,  0.0f, 1, false, true,  100.0f,  55.0f },
         { "Micropitch 231",         25.0f, 9.0f, 0.1f,  0, 100.0f, 0.0f, 400.0f,  0.0f,  0.0f, 2, false, true,  100.0f,  80.0f },
