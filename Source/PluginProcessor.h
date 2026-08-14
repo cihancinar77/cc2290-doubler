@@ -43,11 +43,13 @@ public:
 private:
     static juce::AudioProcessorValueTreeState::ParameterLayout createLayout();
 
-    // fractional delay line (shared buffer, two read taps)
-    std::vector<float> delayBuf;
+    // fractional delay lines, one per channel (each with two read taps) so a
+    // stereo input keeps its image in the doubled signal instead of being
+    // summed to mono (which also cancelled out-of-phase stereo sources)
+    std::vector<float> delayBufL, delayBufR;
     int bufLen = 0, writePos = 0;
 
-    float readTap (float delaySamples) const;
+    float readTap (const std::vector<float>& buf, float delaySamples) const;
 
     // LFO state
     double lfoPhase = 0.0;         // sine phase 0..1
@@ -61,10 +63,10 @@ private:
 
     // smoothed params
     juce::SmoothedValue<float> smDelayMs, smWet, smDry, smWidth, smFeedback;
-    float fbSample = 0.0f;
+    float fbL = 0.0f, fbR = 0.0f;
 
-    // vintage tone filters (one per output channel path of the wet voices)
-    juce::dsp::IIR::Filter<float> toneA, toneB;
+    // vintage tone filters (one per voice per channel)
+    juce::dsp::IIR::Filter<float> toneAL, toneAR, toneBL, toneBR;
 
     double fs = 44100.0;
 

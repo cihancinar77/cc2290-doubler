@@ -81,9 +81,10 @@ void CC2290Processor::prepareToPlay (double sampleRate, int)
     fs = sampleRate;
     // max base 100ms * golden ratio + max excursion headroom
     bufLen = juce::nextPowerOfTwo ((int) (sampleRate * 0.35) + 8);
-    delayBuf.assign ((size_t) bufLen, 0.0f);
+    delayBufL.assign ((size_t) bufLen, 0.0f);
+    delayBufR.assign ((size_t) bufLen, 0.0f);
     writePos = 0;
-    fbSample = 0.0f;
+    fbL = fbR = 0.0f;
     env = 0.0f;
     lfoPhase = 0.0;
     randPhaseA = 0.0; randPhaseB = 0.5;
@@ -94,14 +95,15 @@ void CC2290Processor::prepareToPlay (double sampleRate, int)
         s->reset (sampleRate, smoothSec);
 
     auto tone = juce::dsp::IIR::Coefficients<float>::makeLowPass (sampleRate, 11000.0f, 0.707f);
-    toneA.coefficients = tone;
-    toneB.coefficients = tone;
     juce::dsp::ProcessSpec spec { sampleRate, 512, 1 };
-    toneA.prepare (spec);
-    toneB.prepare (spec);
+    for (auto* f : { &toneAL, &toneAR, &toneBL, &toneBR })
+    {
+        f->coefficients = tone;
+        f->prepare (spec);
+    }
 }
 
-float CC2290Processor::readTap (float delaySamples) const
+float CC2290Processor::readTap (const std::vector<float>& buf, float delaySamples) const
 {
     // 4-point Hermite interpolation
     float rp = (float) writePos - delaySamples;
@@ -109,10 +111,10 @@ float CC2290Processor::readTap (float delaySamples) const
     const int i1 = (int) rp;
     const float frac = rp - (float) i1;
     const int mask = bufLen - 1;
-    const float xm1 = delayBuf[(size_t) ((i1 - 1) & mask)];
-    const float x0  = delayBuf[(size_t) ( i1      & mask)];
-    const float x1  = delayBuf[(size_t) ((i1 + 1) & mask)];
-    const float x2  = delayBuf[(size_t) ((i1 + 2) & mask)];
+    const float xm1 = buf[(size_t) ((i1 - 1) & mask)];
+    const float x0  = buf[(size_t) ( i1      & mask)];
+    const float x1  = buf[(size_t) ((i1 + 1) & mask)];
+    const float x2  = buf[(size_t) ((i1 + 2) & mask)];
     const float c  = (x1 - xm1) * 0.5f;
     const float v  = x0 - x1;
     const float w  = c + v;
@@ -213,17 +215,25 @@ void CC2290Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
         dA = juce::jlimit (2.0f, (float) bufLen - 4.0f, dA);
         dB = juce::jlimit (2.0f, (float) bufLen - 4.0f, dB);
 
-        // write input + feedback into the shared delay line
-        delayBuf[(size_t) writePos] = mono + fbSample * smFeedback.getNextValue();
+        // write input + feedback into the per-channel delay lines; a mono
+        // input fills both lines identically, so mono behaviour is unchanged
+        const float fbAmt = smFeedback.getNextValue();
+        delayBufL[(size_t) writePos] = dryL + fbL * fbAmt;
+        delayBufR[(size_t) writePos] = dryR + fbR * fbAmt;
 
-        float tapA = readTap (dA);
-        float tapB = readTap (dB);
-        fbSample = tapA;
+        float tapAL = readTap (delayBufL, dA);
+        float tapAR = readTap (delayBufR, dA);
+        float tapBL = readTap (delayBufL, dB);
+        float tapBR = readTap (delayBufR, dB);
+        fbL = tapAL;
+        fbR = tapAR;
 
         if (vintage)
         {
-            tapA = toneA.processSample (tapA);
-            tapB = toneB.processSample (tapB);
+            tapAL = toneAL.processSample (tapAL);
+            tapAR = toneAR.processSample (tapAR);
+            tapBL = toneBL.processSample (tapBL);
+            tapBR = toneBR.processSample (tapBR);
         }
 
         // ducking: the double tucks under while you play
@@ -240,8 +250,8 @@ void CC2290Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
         const float vB_R = 1.0f;
         const float bGain = width;                // voice B fades in with width
 
-        const float wl = wet * (tapA * vA_L + tapB * vB_L * bGain) * 0.9f;
-        const float wr = wet * (tapA * vA_R + tapB * vB_R * bGain) * 0.9f;
+        const float wl = wet * (tapAL * vA_L + tapBL * vB_L * bGain) * 0.9f;
+        const float wr = wet * (tapAR * vA_R + tapBR * vB_R * bGain) * 0.9f;
 
         outL[i] = dryL * dry + wl;
         if (outR != nullptr)
