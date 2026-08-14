@@ -61,7 +61,9 @@ feedback path, as on the original Dynamic section.
 
 Vocal ADT (the default patch), Tight Thickener, Micropitch 231 (an homage to
 the Eventide H3000 #231 patch), Big Rhythm Guitars, 2290 Dynamic Double,
-Petrucci Split, Slapback 90, Wet Bus 100%, and Ultra Wide (Check Mono) — all
+Petrucci Split, Slapback 90, Wet Bus 100%, Ultra Wide (Check Mono), and
+Axe-FX 2290 Wide (the Fractal "2290 w/ Modulation" tone: 15 ms, one sine LFO
+at 0.35 Hz, wet phase-reversed right) — all
 reachable from the host's preset/program menu.
 
 ## Parameters

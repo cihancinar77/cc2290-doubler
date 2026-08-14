@@ -374,6 +374,10 @@ namespace
         { "Slapback 90",            90.0f, 2.0f, 0.2f,  1, 35.0f,  0.0f, 400.0f,  0.0f,  8.0f, 0, false, false, 100.0f,  65.0f },
         { "Wet Bus 100%",           24.0f, 7.0f, 0.4f,  1, 100.0f, 0.0f, 400.0f,  0.0f,  0.0f, 1, false, true,    0.0f, 100.0f },
         { "Ultra Wide (Check Mono)",18.0f, 10.0f, 0.6f, 1, 100.0f, 0.0f, 400.0f,  0.0f,  0.0f, 2, true,  true,  100.0f,  85.0f },
+        // Fractal Axe-FX "2290 w/ Modulation" tone: 15 ms, no feedback, one
+        // sine LFO at 0.35 Hz (depth "low"), 50% mix, wet phase-reversed on
+        // the right — here: width 0 (single centred voice) + Wide engaged
+        { "Axe-FX 2290 Wide",       15.0f, 5.0f, 0.35f, 0,  0.0f,  0.0f, 400.0f,  0.0f,  0.0f, 3, true,  true,  100.0f, 100.0f },
     };
 }
 
