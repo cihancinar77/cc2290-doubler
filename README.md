@@ -73,7 +73,7 @@ reachable from the host's preset/program menu.
 | MODULATION | Speed (Hz), Depth (cents) |
 | DELAY | Delay (ms), Feedback (%) |
 | DYNAMICS | Ducking (%), Dyn Speed (ms), Dyn Mod (%) |
-| MIX | Dry (%), Double (%), Width (% dry/delay split) |
+| MIX | Dry (%), Double (%), Width (% wet-voice spread, dry stays centred) |
 | MODE | Sine / Random waveform, Wide (wet phase-reverse), Voice 2 (golden-ratio tap), FB hi-cut (2/4/8 kHz/off) |
 
 ## Building
