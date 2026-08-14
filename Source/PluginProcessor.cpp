@@ -12,7 +12,8 @@ namespace IDs
     static const juce::String dynspeed { "dynspeed" };  // ms release
     static const juce::String dynmod   { "dynmod" };    // %
     static const juce::String feedback { "feedback" };  // %
-    static const juce::String vintage  { "vintage" };   // bool
+    static const juce::String fbhicut  { "fbhicut" };   // repeat-only hi-cut choice
+    static const juce::String wide     { "wide" };      // bool, wet phase-reverse R
     static const juce::String dry      { "dry" };       // %
     static const juce::String wet      { "wet" };       // %
 }
@@ -32,8 +33,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout CC2290Processor::createLayou
     using Pb = juce::AudioParameterBool;
     juce::AudioProcessorValueTreeState::ParameterLayout l;
 
+    // hardware range starts at 0.1 ms; 1 ms keeps the taps comfortably apart
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::delay, 1 }, "Delay",
-                                 juce::NormalisableRange<float> (5.0f, 100.0f, 0.1f, 0.5f), 7.0f,
+                                 juce::NormalisableRange<float> (1.0f, 100.0f, 0.1f, 0.5f), 7.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("ms")));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::depth, 1 }, "Mod Depth",
                                  juce::NormalisableRange<float> (0.0f, 25.0f, 0.1f), 4.0f,
@@ -49,8 +51,9 @@ juce::AudioProcessorValueTreeState::ParameterLayout CC2290Processor::createLayou
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::duck, 1 }, "Ducking",
                                  juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 0.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("%")));
+    // 2290 dynamic release spans 0.1 s (SPEED 10) to 10 s (SPEED 0.1)
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::dynspeed, 1 }, "Dyn Speed",
-                                 juce::NormalisableRange<float> (50.0f, 1000.0f, 1.0f, 0.5f), 200.0f,
+                                 juce::NormalisableRange<float> (100.0f, 9999.0f, 1.0f, 0.35f), 200.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("ms")));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::dynmod, 1 }, "Dyn Mod",
                                  juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 0.0f,
@@ -58,7 +61,11 @@ juce::AudioProcessorValueTreeState::ParameterLayout CC2290Processor::createLayou
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::feedback, 1 }, "Feedback",
                                  juce::NormalisableRange<float> (0.0f, 50.0f, 1.0f), 0.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("%")));
-    l.add (std::make_unique<Pb> (juce::ParameterID { IDs::vintage, 1 }, "Vintage Tone", true));
+    // hardware feedback hi-cut: 2/4/8 kHz, 33 kHz = off; shapes repeats only
+    l.add (std::make_unique<Pc> (juce::ParameterID { IDs::fbhicut, 1 }, "FB Hi-Cut",
+                                 juce::StringArray { "2 kHz", "4 kHz", "8 kHz", "Off" }, 3));
+    // the 2290's signature wide mode: wet phase-reversed between L and R
+    l.add (std::make_unique<Pb> (juce::ParameterID { IDs::wide, 1 }, "Wide", false));
     l.add (std::make_unique<P>  (juce::ParameterID { IDs::dry, 1 }, "Dry",
                                  juce::NormalisableRange<float> (0.0f, 100.0f, 1.0f), 100.0f,
                                  juce::AudioParameterFloatAttributes().withLabel ("%")));
@@ -91,16 +98,15 @@ void CC2290Processor::prepareToPlay (double sampleRate, int)
     randValA = randValB = randTargetA = randTargetB = 0.0f;
 
     const double smoothSec = 0.05;
-    for (auto* s : { &smDelayMs, &smWet, &smDry, &smWidth, &smFeedback })
+    for (auto* s : { &smDelayMs, &smWet, &smDry, &smWidth, &smFeedback, &smWideSign })
         s->reset (sampleRate, smoothSec);
+    smWideSign.setCurrentAndTargetValue (
+        apvts.getRawParameterValue ("wide")->load() > 0.5f ? -1.0f : 1.0f);
 
-    auto tone = juce::dsp::IIR::Coefficients<float>::makeLowPass (sampleRate, 11000.0f, 0.707f);
     juce::dsp::ProcessSpec spec { sampleRate, 512, 1 };
-    for (auto* f : { &toneAL, &toneAR, &toneBL, &toneBR })
-    {
-        f->coefficients = tone;
-        f->prepare (spec);
-    }
+    fbFiltL.prepare (spec);
+    fbFiltR.prepare (spec);
+    fbCutIdx = -1;   // force coefficient update on the first block
 }
 
 float CC2290Processor::readTap (const std::vector<float>& buf, float delaySamples) const
@@ -139,7 +145,8 @@ void CC2290Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     const float pDynRel  = apvts.getRawParameterValue (IDs::dynspeed)->load();
     const float pDynMod  = apvts.getRawParameterValue (IDs::dynmod)->load() * 0.01f;
     const float pFb      = apvts.getRawParameterValue (IDs::feedback)->load() * 0.01f;
-    const bool  vintage  = apvts.getRawParameterValue (IDs::vintage)->load() > 0.5f;
+    const int   pFbCut   = (int) apvts.getRawParameterValue (IDs::fbhicut)->load();
+    const bool  pWide    = apvts.getRawParameterValue (IDs::wide)->load() > 0.5f;
     const float pDry     = apvts.getRawParameterValue (IDs::dry)->load() * 0.01f;
     const float pWet     = apvts.getRawParameterValue (IDs::wet)->load() * 0.01f;
 
@@ -148,6 +155,22 @@ void CC2290Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
     smDry.setTargetValue (pDry);
     smWidth.setTargetValue (pWidth);
     smFeedback.setTargetValue (pFb);
+    smWideSign.setTargetValue (pWide ? -1.0f : 1.0f);
+
+    if (pFbCut != fbCutIdx)
+    {
+        fbCutIdx = pFbCut;
+        if (fbCutIdx < 3)
+        {
+            static const float cutHz[3] = { 2000.0f, 4000.0f, 8000.0f };
+            auto c = juce::dsp::IIR::Coefficients<float>::makeLowPass (fs, cutHz[fbCutIdx], 0.707f);
+            fbFiltL.coefficients = c;
+            fbFiltR.coefficients = c;
+        }
+        fbFiltL.reset();
+        fbFiltR.reset();
+    }
+    const bool fbCutOn = fbCutIdx < 3;
 
     // automatic depth correction: constant pitch excursion.
     // peak pitch ratio deviation r = 2^(cents/1200) - 1 ; sine tap sweep of
@@ -183,6 +206,10 @@ void CC2290Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
         env += (rect > env ? envAtk : envRel) * (rect - env);
         const float envNorm = juce::jmin (1.0f, env * 4.0f);   // ~ -12 dBFS => 1.0
 
+        // ducking: the double tucks under while you play; the 2290 ducks the
+        // feedback path with the same envelope, so we do too
+        const float duckGain = 1.0f - pDuck * envNorm;
+
         // dynamic modulation: playing harder deepens the modulation
         const float modScale = 1.0f + pDynMod * envNorm * 2.0f;
 
@@ -216,28 +243,21 @@ void CC2290Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
         dB = juce::jlimit (2.0f, (float) bufLen - 4.0f, dB);
 
         // write input + feedback into the per-channel delay lines; a mono
-        // input fills both lines identically, so mono behaviour is unchanged
-        const float fbAmt = smFeedback.getNextValue();
-        delayBufL[(size_t) writePos] = dryL + fbL * fbAmt;
-        delayBufR[(size_t) writePos] = dryR + fbR * fbAmt;
+        // input fills both lines identically, so mono behaviour is unchanged.
+        // the hi-cut filter sits in the feedback path only, so the first echo
+        // stays full-band and just the repeats darken, as on the hardware
+        const float fbAmt = smFeedback.getNextValue() * duckGain;
+        const float fbInL = fbCutOn ? fbFiltL.processSample (fbL) : fbL;
+        const float fbInR = fbCutOn ? fbFiltR.processSample (fbR) : fbR;
+        delayBufL[(size_t) writePos] = dryL + fbInL * fbAmt;
+        delayBufR[(size_t) writePos] = dryR + fbInR * fbAmt;
 
-        float tapAL = readTap (delayBufL, dA);
-        float tapAR = readTap (delayBufR, dA);
-        float tapBL = readTap (delayBufL, dB);
-        float tapBR = readTap (delayBufR, dB);
+        const float tapAL = readTap (delayBufL, dA);
+        const float tapAR = readTap (delayBufR, dA);
+        const float tapBL = readTap (delayBufL, dB);
+        const float tapBR = readTap (delayBufR, dB);
         fbL = tapAL;
         fbR = tapAR;
-
-        if (vintage)
-        {
-            tapAL = toneAL.processSample (tapAL);
-            tapAR = toneAR.processSample (tapAR);
-            tapBL = toneBL.processSample (tapBL);
-            tapBR = toneBR.processSample (tapBR);
-        }
-
-        // ducking: the double tucks under while you play
-        const float duckGain = 1.0f - pDuck * envNorm;
 
         const float wet   = smWet.getNextValue() * duckGain;
         const float dry   = smDry.getNextValue();
@@ -253,9 +273,14 @@ void CC2290Processor::processBlock (juce::AudioBuffer<float>& buffer, juce::Midi
         const float wl = wet * (tapAL * vA_L + tapBL * vB_L * bGain) * 0.9f;
         const float wr = wet * (tapAR * vA_R + tapBR * vB_R * bGain) * 0.9f;
 
+        // wide mode: wet phase-reversed on the right, per the 2290's stereo
+        // trick ("pleasantly broad but not monocompatible"); smoothed so
+        // toggling doesn't click
+        const float wideSign = smWideSign.getNextValue();
+
         outL[i] = dryL * dry + wl;
         if (outR != nullptr)
-            outR[i] = dryR * dry + wr;
+            outR[i] = dryR * dry + wr * wideSign;
 
         inPk  = juce::jmax (inPk, std::abs (mono));
         outPk = juce::jmax (outPk, std::abs (outL[i]),

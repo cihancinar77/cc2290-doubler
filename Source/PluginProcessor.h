@@ -61,12 +61,13 @@ private:
     // envelope follower
     float env = 0.0f;
 
-    // smoothed params
-    juce::SmoothedValue<float> smDelayMs, smWet, smDry, smWidth, smFeedback;
+    // smoothed params (smWideSign ramps between +1/-1 for the wide switch)
+    juce::SmoothedValue<float> smDelayMs, smWet, smDry, smWidth, smFeedback, smWideSign;
     float fbL = 0.0f, fbR = 0.0f;
 
-    // vintage tone filters (one per voice per channel)
-    juce::dsp::IIR::Filter<float> toneAL, toneAR, toneBL, toneBR;
+    // feedback-path hi-cut (repeats only, like the hardware's 2/4/8 kHz)
+    juce::dsp::IIR::Filter<float> fbFiltL, fbFiltR;
+    int fbCutIdx = -1;
 
     double fs = 44100.0;
 

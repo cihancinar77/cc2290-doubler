@@ -77,9 +77,11 @@ private:
                                duckCell, dynSpeedCell, dynModCell,
                                dryCell, wetCell, widthCell;
 
-    juce::TextButton sineButton { "SINE" }, randButton { "RANDOM" }, vintageButton { "VINTAGE" };
-    std::unique_ptr<juce::ParameterAttachment> waveAttach;
-    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> vintageAttach;
+    juce::TextButton sineButton { "SINE" }, randButton { "RANDOM" },
+                     wideButton { "WIDE" }, fbCutButton { "FB CUT OFF" };
+    std::unique_ptr<juce::ParameterAttachment> waveAttach, fbCutAttach;
+    std::unique_ptr<juce::AudioProcessorValueTreeState::ButtonAttachment> wideAttach;
+    int fbCutIdx = 3;
 
     LevelMeter inMeter, outMeter;
     float inDispDb = -60.0f, outDispDb = -60.0f;

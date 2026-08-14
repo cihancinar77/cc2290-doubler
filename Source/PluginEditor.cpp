@@ -264,10 +264,24 @@ CC2290Editor::CC2290Editor (CC2290Processor& p)
     randButton.onClick = [this] { waveAttach->setValueAsCompleteGesture (1.0f); };
     waveAttach->sendInitialUpdate();
 
-    vintageButton.setClickingTogglesState (true);
-    addAndMakeVisible (vintageButton);
-    vintageAttach = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
-        proc.apvts, "vintage", vintageButton);
+    wideButton.setClickingTogglesState (true);
+    addAndMakeVisible (wideButton);
+    wideAttach = std::make_unique<juce::AudioProcessorValueTreeState::ButtonAttachment> (
+        proc.apvts, "wide", wideButton);
+
+    // feedback hi-cut cycles 2k -> 4k -> 8k -> off; LED lit while engaged
+    addAndMakeVisible (fbCutButton);
+    auto* fbCutParam = proc.apvts.getParameter ("fbhicut");
+    fbCutAttach = std::make_unique<juce::ParameterAttachment> (*fbCutParam,
+        [this] (float v)
+        {
+            fbCutIdx = juce::jlimit (0, 3, (int) std::lround (v));
+            static const char* names[] = { "FB CUT 2K", "FB CUT 4K", "FB CUT 8K", "FB CUT OFF" };
+            fbCutButton.setButtonText (names[fbCutIdx]);
+            fbCutButton.setToggleState (fbCutIdx < 3, juce::dontSendNotification);
+        });
+    fbCutButton.onClick = [this] { fbCutAttach->setValueAsCompleteGesture ((float) ((fbCutIdx + 1) % 4)); };
+    fbCutAttach->sendInitialUpdate();
 
     addAndMakeVisible (inMeter);
     addAndMakeVisible (outMeter);
@@ -352,12 +366,14 @@ void CC2290Editor::resized()
 
         auto content = modeBox.reduced (14);
         content.removeFromTop (14);
-        const int bh = 26;
-        sineButton.setBounds    (content.removeFromTop (bh));
-        content.removeFromTop (8);
-        randButton.setBounds    (content.removeFromTop (bh));
-        content.removeFromTop (8);
-        vintageButton.setBounds (content.removeFromTop (bh));
+        const int bh = 22;
+        sineButton.setBounds  (content.removeFromTop (bh));
+        content.removeFromTop (5);
+        randButton.setBounds  (content.removeFromTop (bh));
+        content.removeFromTop (5);
+        wideButton.setBounds  (content.removeFromTop (bh));
+        content.removeFromTop (5);
+        fbCutButton.setBounds (content.removeFromTop (bh));
 
         specDisplay = specBox.reduced (16).withTrimmedTop (18);
     }

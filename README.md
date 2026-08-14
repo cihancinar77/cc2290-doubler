@@ -26,9 +26,17 @@ The famous "2290 doubling" sound is not a special mode — it is a recipe:
    dry signal while you play (ducking), and modulation can deepen the harder you
    play (dynamic modulation).
 
-Extras: a golden-ratio (×1.618) second voice for stereo width, optional
-"vintage tone" low-pass, and an LED rack-style UI with draggable 7-segment
-displays and live input/output meters.
+Extras: a golden-ratio (×1.618) second voice for stereo width (a creative
+addition — the real 2290 is single-voice; multi-voice rigs chained several
+units), a **Wide** mode that phase-reverses the wet signal between left and
+right (the hardware's signature "pleasantly broad but not monocompatible"
+stereo trick), a feedback-path hi-cut (2/4/8 kHz, repeats only, first echo
+stays full-band — like the hardware's feedback filters), and an LED rack-style
+UI with draggable 7-segment displays and live input/output meters.
+
+True stereo: each input channel gets its own delay line, so stereo sources
+keep their image in the doubled signal; ducking attenuates both the delay
+level and the feedback path, as on the original Dynamic section.
 
 ## Default settings — the Petrucci split
 
@@ -47,7 +55,7 @@ modulation (4 cents @ 0.35 Hz) for the chorused movement. Classic 24 ms
 | DELAY | Delay (ms), Feedback (%) |
 | DYNAMICS | Ducking (%), Dyn Speed (ms), Dyn Mod (%) |
 | MIX | Dry (%), Double (%), Width (%) |
-| MODE | Sine / Random waveform, Vintage tone |
+| MODE | Sine / Random waveform, Wide (wet phase-reverse), FB hi-cut (2/4/8 kHz/off) |
 
 ## Building
 
