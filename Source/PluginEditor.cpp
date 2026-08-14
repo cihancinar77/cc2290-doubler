@@ -460,4 +460,10 @@ void CC2290Editor::paint (juce::Graphics& g)
     g.setColour (labelCol.withAlpha (0.7f));
     g.setFont (juce::FontOptions (11.0f, juce::Font::bold | juce::Font::italic));
     g.drawText ("c.c. electronic", footer, juce::Justification::centred);
+    // version stamp so it's obvious which build the host actually loaded
+   #ifdef JucePlugin_VersionString
+    g.setFont (juce::FontOptions (9.0f, juce::Font::bold));
+    g.drawText ("v" JucePlugin_VersionString, footer.reduced (10.0f, 0.0f),
+                juce::Justification::centredRight);
+   #endif
 }
