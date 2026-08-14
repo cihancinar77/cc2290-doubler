@@ -23,12 +23,13 @@ public:
     const juce::String getName() const override           { return "CC2290"; }
     bool acceptsMidi() const override                     { return false; }
     bool producesMidi() const override                    { return false; }
-    double getTailLengthSeconds() const override          { return 0.3; }
+    double getTailLengthSeconds() const override          { return 1.0; }
 
-    int getNumPrograms() override                         { return 1; }
-    int getCurrentProgram() override                      { return 0; }
-    void setCurrentProgram (int) override                 {}
-    const juce::String getProgramName (int) override      { return {}; }
+    // factory presets, exposed to the host as programs
+    int getNumPrograms() override;
+    int getCurrentProgram() override                      { return currentProgram; }
+    void setCurrentProgram (int) override;
+    const juce::String getProgramName (int) override;
     void changeProgramName (int, const juce::String&) override {}
 
     void getStateInformation (juce::MemoryBlock& destData) override;
@@ -51,12 +52,16 @@ private:
 
     float readTap (const std::vector<float>& buf, float delaySamples) const;
 
-    // LFO state
+    // LFO state (random path: S&H targets through two cascaded one-poles so
+    // both the value and its derivative stay continuous)
     double lfoPhase = 0.0;         // sine phase 0..1
     double randPhaseA = 0.0, randPhaseB = 0.5;
     float randTargetA = 0.0f, randTargetB = 0.0f;
+    float randS1A = 0.0f, randS1B = 0.0f;
     float randValA = 0.0f, randValB = 0.0f;
     juce::Random rng;
+
+    int currentProgram = 0;
 
     // envelope follower
     float env = 0.0f;

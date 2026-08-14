@@ -26,33 +26,43 @@ The famous "2290 doubling" sound is not a special mode — it is a recipe:
    dry signal while you play (ducking), and modulation can deepen the harder you
    play (dynamic modulation).
 
-**Width is a dry/delay split**, like the classic 2290 rigs: as width increases
-the dry signal walks left and the delayed voice walks right, so at 100% the
-dry and the double never sum on the same channel. (Summing them is what combs
-like a flanger at short delay times — the manual's own chart calls 0–10 ms
-mixed dry+wet the flanger zone.) At width 0% both sit centred for classic
-mono ADT stacking.
+**The dry signal always stays centred; Width spreads only the wet voices** —
+voice A walks right while Voice 2 (the golden-ratio ×1.618 tap) balances it on
+the left. Because both wet voices are delayed relative to a centred dry,
+neither ear consistently leads and the image never pulls sideways (the
+precedence/Haas trap of dry-one-side/wet-other-side splits). This is the same
+topology as the well-regarded doublers (MicroShift, Waves Doubler, iZotope).
 
-Extras: an optional **Voice 2** golden-ratio (×1.618) second tap on the
-opposite side (a creative addition — the real 2290 is single-voice; multi-voice
-rigs chained several units), a **Wide** mode that phase-reverses the wet signal
-between left and right (the hardware's signature "pleasantly broad but not
-monocompatible" stereo trick), a feedback-path hi-cut (2/4/8 kHz, repeats only,
-first echo stays full-band — like the hardware's feedback filters), and an LED
-rack-style UI with draggable 7-segment displays and live input/output meters.
+Two rules of thumb baked into the design:
 
-True stereo: each input channel gets its own delay line, so stereo sources
-keep their image in the doubled signal; ducking attenuates both the delay
-level and the feedback path, as on the original Dynamic section.
+- **20–80 ms is the doubling zone** (the 2290 manual's own chart): there,
+  dry + double on the same channel reads as a second performance. Below
+  ~10 ms the same sum combs like a flanger — for short splits use the
+  kill-dry recipe below instead.
+- **The classic 7 ms split is a 100% wet patch**: set `DRY 0, DOUBLE 100,
+  WIDTH 100, DELAY 7` — the left channel gets the 11.3 ms tap, the right the
+  7 ms tap, nothing combs and nothing pulls. (Ships as the "Petrucci Split"
+  factory preset, after John Petrucci's documented always-on 2290 setting.)
 
-## Default settings — the Petrucci split
+Extras: a **Wide** mode that phase-reverses the wet between left and right
+(the hardware's signature "pleasantly broad but not monocompatible" stereo
+trick; automatically disabled on mono outputs), a feedback-path hi-cut
+(2/4/8 kHz, repeats only, first echo stays full-band — like the hardware's
+feedback filters), and an LED rack-style UI with draggable 7-segment displays
+and live input/output meters.
 
-The defaults follow John Petrucci's documented live use of the 2290: he runs a
-**7 ms delay between left and right, 100% wet, 0% feedback** on practically every
-sound, as a stereo split with light chorusing. So the plugin opens with
-Delay 7 ms, Double 100%, Width 100%, Feedback 0%, no ducking, and subtle random
-modulation (4 cents @ 0.35 Hz) for the chorused movement. Classic 24 ms
-"vocal doubling" is one knob away — raise Delay to 24 ms.
+True stereo, and **Mono → Stereo**: each input channel gets its own delay
+line, so stereo sources keep their image in the doubled signal; on a mono
+track in Logic, insert the Mono → Stereo variant to spread a mono source
+into a full stereo double. Ducking attenuates both the delay level and the
+feedback path, as on the original Dynamic section.
+
+## Factory presets
+
+Vocal ADT (the default patch), Tight Thickener, Micropitch 231 (an homage to
+the Eventide H3000 #231 patch), Big Rhythm Guitars, 2290 Dynamic Double,
+Petrucci Split, Slapback 90, Wet Bus 100%, and Ultra Wide (Check Mono) — all
+reachable from the host's preset/program menu.
 
 ## Parameters
 
